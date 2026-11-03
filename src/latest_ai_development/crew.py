@@ -244,31 +244,30 @@ class LatestAiDevelopment():
     # IMPORTANT FOR AI / FUTURE EDITS:
     # - PROVIDER is common (one env var for entire crew).
     # - MODEL is configured PER AGENT via env vars:
-    #     RESEARCHER_MODEL_NAME, WRITER_MODEL_NAME, EDITOR_MODEL_NAME
+    #     RESEARCHER_MODEL_NAME, WRITER_MODEL_NAME
     # - Generation params are HARD-CODED PER AGENT in this file:
     #     temperature/top_p/max_tokens
 
     provider = os.getenv("PROVIDER", "OLLAMA").upper()
     
     # -------------------------------------------------------------------------
-    # Add proper comments to understand by llm
-    # These values directly map to your requirement:
+    # Generation parameters referenced in the agent design:
     #
-    # Researcher:   temperature=0, top_p=0.3, max_tokens=1024
-    # Reporting Analyst:    temperature=0.2, top_p=0.8, max_tokens=1500
+    # Researcher: temperature=0.0, top_p=0.0, max_tokens=10000
+    # Writer:     temperature=0.0, top_p=0.0, max_tokens=10000
     # -------------------------------------------------------------------------
     AGENT_LLM_SETTINGS: Dict[str, Dict[str, Any]] = {
         "researcher": {
-            "model": "gpt-4.1-mini",
-            "temperature": 0.1,
-            "top_p": 0.3,
-            "max_tokens": 4000,
+            "model": "gpt-5.4-mini",
+            "temperature": 0.0,
+            "top_p": 0.0,
+            "max_tokens": 10000,
         },
-        "reporting_analyst": {
-            "model": "gpt-4.1-mini",
-            "temperature": 0.2,
-            "top_p": 0.8,
-            "max_tokens": 4000,
+        "writer": {
+            "model": "gpt-5.4-mini",
+            "temperature": 0.0,
+            "top_p": 0.0,
+            "max_tokens": 10000,
         }
     }
 
@@ -330,31 +329,30 @@ class LatestAiDevelopment():
             config=self.agents_config['researcher'], # type: ignore[index]
             verbose=True,
             llm=self._llm_for_agent("researcher"),
-
         )
 
     @agent
-    def reporting_analyst(self) -> Agent:
+    def writer(self) -> Agent:
         return Agent(
-            config=self.agents_config['reporting_analyst'], # type: ignore[index]
+            config=self.agents_config['writer'], # type: ignore[index]
             verbose=True,
-            llm=self._llm_for_agent("reporting_analyst"),
+            llm=self._llm_for_agent("writer"),
         )
 
     # To learn more about structured task outputs,
     # task dependencies, and task callbacks, check out the documentation:
     # https://docs.crewai.com/concepts/tasks#overview-of-a-task
     @task
-    def research_task(self) -> Task:
+    def researcher_task(self) -> Task:
         return Task(
-            config=self.tasks_config['research_task'], # type: ignore[index]
+            config=self.tasks_config['researcher_task'], # type: ignore[index]
         )
 
     @task
-    def reporting_task(self) -> Task:
+    def writer_task(self) -> Task:
         return Task(
-            config=self.tasks_config['reporting_task'], # type: ignore[index]
-            output_file='/data/report.md'
+            config=self.tasks_config['writer_task'], # type: ignore[index]
+            context=[self.researcher_task()],
         )
 
     @crew

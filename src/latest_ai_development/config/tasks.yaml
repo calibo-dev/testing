@@ -1,18 +1,13 @@
-research_task:
+researcher_task:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
+    Extract accurate, concise, and original key points and factual notes relevant to {{topic}}, ensuring beginner-friendly coverage with a proper scope for a 600-800 word blog post.
   expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
+    Research notes containing key points and factual notes with coverage status and any limitations.
   agent: researcher
 
-reporting_task:
+writer_task:
   description: >
-    Review the research context and write a concise report with short sections.
-    Focus on the 5 most important points only.
-    Keep the response compact, clear, and within a few paragraphs.
+    Transform the Researcher's research_notes into a complete, well-structured, original blog post of 600-800 words, including an introduction, key sections, and conclusion written in clear, engaging, beginner-friendly language.
   expected_output: >
-    A concise markdown report covering the 5 most important findings with short sections.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+    A single blog_post that presents the full 600-800 word article covering the supplied research notes.
+  agent: writer

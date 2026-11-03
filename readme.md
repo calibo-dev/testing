@@ -12,24 +12,37 @@
 ![Docker](https://img.shields.io/badge/Docker-black?logo=docker)
 ![Helm](https://img.shields.io/badge/Helm-black?logo=helm)
 
+## Overview
+A two-agent system to generate high-quality, original, beginner-friendly blog posts on-demand from any user-provided topic. The Researcher agent extracts accurate, concise key points and factual notes that cover the beginner scope of a 600-800 word post. The Writer agent transforms those research_notes into a clear, engaging blog post with an introduction, key sections, and a conclusion, all delivered in a single synchronous execution flow.
+
+## Agents
+- **Researcher** (Content Research and Fact Extraction) — Extracts accurate, concise, and original key points and factual notes from the supplied topic, validates coverage for a beginner-friendly 600-800 word blog post, and produces `research_notes` for downstream use.
+- **Writer** (Blog Post Composition and Structuring) — Transforms the Researcher's `research_notes` into an original 600-800 word blog post with an introduction, key sections, and conclusion, all written in clear, engaging language for general readers, and produces the final `blog_post` text.
+
+## Topology
+- Researcher → Writer (sync) — Pass `research_notes` containing key points, factual notes, and coverage status from Researcher to Writer for blog post composition.
+
+## Assumptions
+- The user provides a clear and sufficiently descriptive topic input for research.
+- No external data fetching or live research is performed; all content is generated from the input and internal knowledge.
+- The system runs on-demand and produces the blog post in a single synchronous execution flow.
+- Originality is ensured by internal content generation logic without direct copying from external sources.
+
+## Known Risks
+- Insufficient or ambiguous topic input may lead to incomplete or low-quality research notes and blog posts.
+- Lack of external verification may cause factual inaccuracies or outdated information in the blog post.
+- The system may produce content that is too generic or lacks depth if the topic scope is not well captured.
+- No explicit content moderation or prohibited content filtering may allow unintended content if input is malicious.
+
 ## 1. Project Overview
-
-Based on the available code, this project is a **Python multi-agent “research → report” service** built with **CrewAI** and exposed via a **FastAPI** API. It orchestrates a sequential workflow (research agent → reporting agent) to generate a markdown report file (`report.md`) from a topic input.
-
-Primary stack:
-- **Python** application using a **src/**-layout package (`latest_ai_development`)
-- **CrewAI** for agent/task orchestration (YAML-driven agent/task configs)
-- **FastAPI + Uvicorn** for HTTP endpoints (`/health`, `/ask`)
-- Optional integrations visible in code: **AWS Secrets Manager (boto3)**, **Azure Key Vault**, and an LLM endpoint configured via environment variables.
+This repository hosts a CrewAI-powered Python service that orchestrates a Researcher → Writer workflow to turn a user-provided topic into a beginner-friendly blog post. FastAPI exposes a `/health` endpoint and an `/ask` endpoint that accepts a topic request, triggers the crew, and returns the resulting `blog_post` text as the final deliverable.
 
 ### Template Origin
-
 This project was initialized using **crewai**.
 
 ```bash
 crewai create crew latest-ai-development
 ```
-
 
 ## 2. Tech Stack
 
@@ -65,13 +78,13 @@ crewai create crew latest-ai-development
 ├── src/
 │   └── latest_ai_development/
 │       ├── config/
-│       │   ├── agents.yaml            # Agent definitions (roles/goals/backstories/LLM hints)
-│       │   └── tasks.yaml             # Task definitions (descriptions/expected output/agent mapping)
+│       │   ├── agents.yaml            # Agent definitions (roles/goals/backstories that match Researcher + Writer)
+│       │   └── tasks.yaml             # Task definitions (researcher_task + writer_task)
 │       ├── tools/
 │       │   ├── __init__.py            # Tools package marker
 │       │   └── custom_tool.py         # Example CrewAI BaseTool template
 │       ├── __init__.py                # Package marker for latest_ai_development
-│       ├── crew.py                    # CrewAI orchestration (agents/tasks/LLM setup, sequential process)
+│       ├── crew.py                    # CrewAI orchestration wiring Researcher → Writer and LLM parameters
 │       ├── main.py                    # FastAPI app + CLI-style entry functions (run/train/replay/test)
 │       └── secrets_manager.py         # AWS Secrets Manager / Azure Key Vault helper
 ├── knowledge/
@@ -89,33 +102,25 @@ crewai create crew latest-ai-development
 ├── .dockerignore                      # Docker context exclusions
 ├── .gitignore                         # Git ignore rules
 ├── AGENTS.md                          # Repo documentation describing the multi-agent setup
- 
 ```
-
-
-Conventions used (based on the available code):
-- **src/ layout**: application code lives under `src/latest_ai_development/`.
-- **YAML-driven behavior**: agent/task definitions are externalized into `config/*.yaml`.
-- **Generated artifacts**: `report.md` is the configured output target of a reporting task.
 
 ## 4. Key config files
 
 - **`pyproject.toml`** — Declares project metadata, Python version constraints, dependencies, and entry scripts; incorrect edits can break installs, dependency resolution, or console commands.
 - **`uv.lock`** — Frozen dependency graph for `uv`; changing/removing it can make environments non-reproducible or break `uv sync --frozen`.
 
-
 ## 5. Key Files Explained
 
 - **`src/latest_ai_development/main.py`**
-  - What it does: Defines the FastAPI app, health endpoint, `/ask` endpoint, and several CLI-like functions (`run`, `train`, `replay`, `test`, `run_with_trigger`).
+  - What it does: Defines the FastAPI app, `/health` and `/ask` endpoints, and several CLI-style functions (`run`, `train`, `replay`, `test`, `run_with_trigger`) that kick off the crew with `topic` inputs.
   - If modified incorrectly: API routes can break, server startup can fail, or the Crew execution entrypoints can stop working.
 
 - **`src/latest_ai_development/crew.py`**
-  - What it does: Declares the CrewAI `CrewBase` class, wires agents/tasks from YAML, and sets up the LLM configuration used by agents.
-  - If modified incorrectly: Agent/task registration can break, YAML mappings can fail, or the orchestration process (sequential) can change unexpectedly.
+  - What it does: Declares the CrewAI `CrewBase` class, wires Researcher and Writer agents/tasks from YAML, and configures the LLM parameters used by each agent.
+  - If modified incorrectly: Agent/task registration can break, YAML mappings can fail, or the orchestration process (sequential Researcher → Writer) can change unexpectedly.
 
 - **`src/latest_ai_development/config/agents.yaml`** and **`src/latest_ai_development/config/tasks.yaml`**
-  - What they do: Define agent personas/config and task definitions expected by the CrewAI decorators in `crew.py`.
+  - What they do: Define agent personas/config and task definitions expected by the CrewAI decorators in `crew.py`, ensuring Researcher produces `research_notes` and Writer consumes them to emit `blog_post`.
   - If modified incorrectly: Missing keys or mismatched names can cause runtime errors when building agents/tasks.
 
 - **`src/latest_ai_development/secrets_manager.py`**
@@ -182,9 +187,9 @@ PYTHONPATH=src uv run python -m latest_ai_development.main
 ## 7. Development Guidelines
 
 - **Keep orchestration in `crew.py`, not in `main.py`.** The code comments in `main.py` indicate it’s intended as a lightweight runner and API wrapper.
-- **Prefer YAML changes for behavior tweaks.** Agent roles/goals and task definitions live in `src/latest_ai_development/config/*.yaml`. Keep code changes for wiring/implementation, not for content.
+- **Prefer YAML changes for behavior tweaks.** Agent roles/goals and task definitions live under `src/latest_ai_development/config/*.yaml`. Keep code changes for wiring/implementation, not for content.
 - **Follow the “src layout” convention consistently.** Imports and runtime execution rely on `PYTHONPATH=src` (mirroring the container’s `PYTHONPATH` approach).
-- **Be careful with generated artifacts.** `report.md` is used as a task output target; if you change output paths/names in `crew.py`, consumers and workflows may break.
+- **Be careful with generated artifacts.** The Writer task returns `blog_post` text output, so if you change task keys or expected output formats, consumers may break.
 - **Treat deployment/CI templates as controlled assets.** Helm and Jenkins files appear to be standardized templates; changes can break build/deploy automation even if application code is correct.
 - **Avoid committing runtime artifacts.** The presence of `__pycache__/` and `*.pyc` suggests local artifacts may be present; ensure these are ignored/cleaned in your workflow.
 
