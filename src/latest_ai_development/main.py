@@ -59,6 +59,7 @@ async def health_check():
 
 
 class TopicRequest(BaseModel):
+    """Payload for requesting a blog post from the crew."""
     topic: str
 
 class TopicResponse(BaseModel):
@@ -70,8 +71,7 @@ def run():
     Run the crew.
     """
     inputs = {
-        'topic': 'Clawdbot',
-        'current_year': str(datetime.now().year)
+        'topic': 'A beginner-friendly blog about sustainable city commuting'
     }
     initialize_langsmith_tracing()
     from latest_ai_development.crew import LatestAiDevelopment
@@ -87,8 +87,7 @@ def train():
     Train the crew for a given number of iterations.
     """
     inputs = {
-        "topic": "Clawdbot",
-        'current_year': str(datetime.now().year)
+        "topic": "How to explain electric bikes to beginners"
     }
     initialize_langsmith_tracing()
     from latest_ai_development.crew import LatestAiDevelopment
@@ -117,8 +116,7 @@ def test():
     Test the crew execution and returns the results.
     """
     inputs = {
-        "topic": "AI LLMs",
-        "current_year": str(datetime.now().year)
+        "topic": "Creating engaging how-to blog posts for first-time writers"
     }
     initialize_langsmith_tracing()
     from latest_ai_development.crew import LatestAiDevelopment
@@ -145,8 +143,7 @@ def run_with_trigger():
 
     inputs = {
         "crewai_trigger_payload": trigger_payload,
-        "topic": "",
-        "current_year": ""
+        "topic": ""
     }
     initialize_langsmith_tracing()
     from latest_ai_development.crew import LatestAiDevelopment
@@ -161,8 +158,7 @@ def run_with_trigger():
 @app.post("/ask")
 async def ask(request: TopicRequest):
     inputs = {
-        "topic": request.topic,
-        "current_year": str(datetime.now().year)
+        "topic": request.topic
     }
     try:
         from latest_ai_development.crew import LatestAiDevelopment
